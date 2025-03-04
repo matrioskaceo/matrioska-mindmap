@@ -1,38 +1,36 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
+import axios from "axios";
 
 const HierarchicalChart = () => {
   const svgRef = useRef();
   const [dimensions, setDimensions] = useState({ width: 2500, height: 2200 });
+  const [chartData, setChartData] = useState([]);
 
-  const sampleData = [
-    { id: "root", name: "Matrioska", parent: "" },
-  ];
-
-  for (let i = 1; i <= 3; i++) {
-    sampleData.push({ id: `P${i}`, name: `Pillar ${i}`, parent: "root" });
-    sampleData.push({ id: `O${i}`, name: `Objective ${i}`, parent: `P${i}` });
-    
-    for (let j = 1; j <= 5; j++) {
-      sampleData.push({ id: `KR${i}${j}`, name: `Key Result ${i}.${j}`, parent: `O${i}` });
-      
-      if (i < 3) {
-        sampleData.push({ id: `PB${i}${j}`, name: `Product Backlog ${i}.${j}`, parent: `KR${i}${j}` });
-        for (let k = 1; k <= 5; k++) {
-          sampleData.push({ id: `Ph${i}${j}${k}`, name: `Phase ${i}.${j}.${k}`, parent: `PB${i}${j}` });
-        }
-      } else {
-        for (let p = 1; p <= 2; p++) {
-          sampleData.push({ id: `PB${i}${j}${p}`, name: `Product Backlog ${i}.${j}.${p}`, parent: `KR${i}${j}` });
-          for (let k = 1; k <= 5; k++) {
-            sampleData.push({ id: `Ph${i}${j}${p}${k}`, name: `Phase ${i}.${j}.${p}.${k}`, parent: `PB${i}${j}${p}` });
-          }
-        }
-      }
-    }
-  }
+  const GOOGLE_SHEET_ID = "1Hmm4S0zlaFxMdT8onJQbqCK6KS0Fl9yc5vtr-Msae6U"; // Reemplaza con tu ID
+  const GOOGLE_SHEET_TAB = "1"; // Número de pestaña (hoja) en Google Sheets
+  const API_URL = `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${GOOGLE_SHEET_TAB}`;
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(API_URL);
+        const jsonData = JSON.parse(response.data.substring(47).slice(0, -2));
+        const rows = jsonData.table.rows.map(row => ({
+          id: row.c[0]?.v.toString() || "",
+          name: row.c[1]?.v || "",
+          parent: row.c[2]?.v?.toString() || "",
+        }));
+        setChartData(rows);
+      } catch (error) {
+        console.error("Error fetching Google Sheet data:", error);
+      }
+    };
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (chartData.length === 0) return;
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
@@ -40,7 +38,7 @@ const HierarchicalChart = () => {
     const width = dimensions.width - margin.left - margin.right;
     const height = dimensions.height - margin.top - margin.bottom;
 
-    // Background pattern with dots every 2cm with 80% opacity
+    // Background pattern with dots every 2cm with 40% opacity
     const defs = svg.append("defs");
     const pattern = defs.append("pattern")
       .attr("id", "dot-pattern")
@@ -69,7 +67,7 @@ const HierarchicalChart = () => {
       .id(d => d.id)
       .parentId(d => d.parent);
 
-    const root = stratify(sampleData);
+    const root = stratify(chartData);
     const treeLayout = d3.tree().size([height, width]).separation((a, b) => a.parent === b.parent ? 5 : 7);
     treeLayout(root);
 
@@ -113,7 +111,7 @@ const HierarchicalChart = () => {
       .attr("fill", "black")
       .style("font-size", d => d.data.name.includes("Phase") ? "8px" : "14px")
       .text(d => d.data.name);
-  }, [dimensions, sampleData]);
+  }, [dimensions, chartData]);
 
   return (
     <svg ref={svgRef} width={dimensions.width} height={dimensions.height} viewBox={`0 0 ${dimensions.width} ${dimensions.height}`} />
