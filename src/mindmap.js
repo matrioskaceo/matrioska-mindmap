@@ -98,25 +98,30 @@ const Mindmap = () => {
         .attr("stroke", "#bbb")
         .attr("stroke-width", 2);
 
-      const node = g.selectAll("g.node")
+        const node = g.selectAll("g.node")
         .data(root.descendants())
         .enter()
         .append("g")
         .attr("class", "node")
-        .attr("transform", d => `translate(${d.y},${d.x})`);
-
+        .attr("transform", d => `translate(${d.y},${d.x})`)
+        .on("click", function (event, d) {
+          d3.selectAll("rect").attr("stroke", "rgb(173, 216, 230)").attr("stroke-width", 1.5);
+          d3.select(this).select("rect")
+            .attr("stroke", "rgb(30, 144, 255)")
+            .attr("stroke-width", 4);
+        });
+  
       node.append("rect")
         .attr("width", d => d.data.name.length * 14 + 80)
-        .attr("height", d => d.data.name.includes("Phase") ? 20 : 60)
-        .attr("x", d => -(d.data.name.length * 7 + 40))
-        .attr("y", d => d.data.name.includes("Phase") ? -10 : -30)
+        .attr("height", d => Math.max(60, d.data.name.length * 2))
+        .attr("x", -60)
+        .attr("y", d => -Math.max(30, d.data.name.length))
         .attr("rx", 6)
         .attr("ry", 6)
         .attr("fill", "#f8f8f8")
-        .attr("stroke", "#bbb")
-        .attr("stroke-width", 2)
-        .style("filter", "drop-shadow(4px 4px 10px rgba(255,255,255,0.5))")
-        .on("click", (event, d) => alert(`Clicked on: ${d.data.name}`));
+        .attr("stroke", "rgb(173, 216, 230)")
+        .attr("stroke-width", 1.5)
+        .style("filter", "drop-shadow(4px 4px 10px rgba(173, 216, 230, 0.7))");
 
       node.append("text")
         .attr("x", 0)
