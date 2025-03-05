@@ -82,11 +82,16 @@ const Mindmap = () => {
 
     try {
       const root = stratify(chartData);
-      const treeLayout = d3.tree().size([height, width]).separation((a, b) => a.parent === b.parent ? 3 : 5);
+      const treeLayout = d3.tree().size([height, width]).separation((a, b) => {
+        if (a.depth === 4 && b.depth === 4) {
+          return 4; // Más separación entre phases
+        }
+        return a.parent === b.parent ? 3 : 5;
+      });
       treeLayout(root);
 
       const linkGenerator = d3.linkHorizontal()
-        .x(d => d.y)
+        .x(d => d.y + (d.depth === 4 ? 80 : 0))
         .y(d => d.x);
 
       g.selectAll("path")
